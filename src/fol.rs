@@ -1,9 +1,11 @@
+use std::clone;
 /// Syntax of first-order logic
 
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::hash::Hasher;
 use std::hash::Hash;
+use std::slice::Iter;
 use std::rc::Rc;
 use std::fmt;
 
@@ -12,17 +14,20 @@ pub struct Sort {
     name: String,
 }
 
+#[derive(Debug)]
 pub struct RelationSymbol {
     name: String,
     input_sorts: Vec<Rc<Sort>>,
 }
 
+#[derive(Debug)]
 pub struct FunctionSymbol {
     name: String,
     input_sorts: Vec<Rc<Sort>>,
     output_sort: Rc<Sort>,
 }
 
+#[derive(Debug)]
 pub struct Language {
     sorts: Vec<Rc<Sort>>,
     function_symbols: Vec<Rc<FunctionSymbol>>,
@@ -37,11 +42,13 @@ pub struct Variable {
     pub sort: Rc<Sort>,
 }
 
+#[derive(Debug)]
 pub enum Term {
     Variable(Rc<Variable>),
     Application(Rc<FunctionSymbol>, Vec<Rc<Term>>),
 }
 
+#[derive(Debug)]
 pub enum Formula {
     RelationApplication(Rc<RelationSymbol>, Vec<Rc<Term>>),
     Equality(Rc<Term>, Rc<Term>),
@@ -54,7 +61,7 @@ pub enum Formula {
     ExistentialQuantification(Rc<Variable>, Rc<Formula>),
 }
 
-fn clone_vec_rc<T, const N: usize>(vec: [&Rc<T>; N]) -> Vec<Rc<T>> {
+fn clone_vec_rc<T>(vec: &[&Rc<T>]) -> Vec<Rc<T>> {
     vec.iter().map(|elem| (*elem).clone()).collect::<Vec<_>>()
 }
 
@@ -83,7 +90,7 @@ impl Hash for Sort {
 }
 
 impl RelationSymbol {
-    pub fn new<const N: usize>(name: &str, input_sorts: [&Rc<Sort>; N]) -> Rc<RelationSymbol> {
+    pub fn new(name: &str, input_sorts: &[&Rc<Sort>]) -> Rc<RelationSymbol> {
         Rc::new(RelationSymbol {
             name: name.to_string(),
             input_sorts: clone_vec_rc(input_sorts),
@@ -92,26 +99,50 @@ impl RelationSymbol {
 }
 
 impl FunctionSymbol {
-    pub fn new<const N: usize>(name: &str, input_sorts: [&Rc<Sort>; N], output_sort: &Rc<Sort>) -> Rc<FunctionSymbol> {
+    pub fn new(name: &str, input_sorts: &[&Rc<Sort>], output_sort: &Rc<Sort>) -> Rc<FunctionSymbol> {
         Rc::new(FunctionSymbol {
             name: name.to_string(),
             input_sorts: clone_vec_rc(input_sorts),
             output_sort: output_sort.clone(),
         })
     }
+
+    pub fn arity(&self) -> usize {
+        self.input_sorts.len()
+    }
 }
 
+impl PartialEq for FunctionSymbol {
+    fn eq(&self, other: &FunctionSymbol) -> bool {
+        if self.name != other.name {
+            return false;
+        }
+        for (input_sort1, input_sort2) in self.input_sorts.iter().zip(&other.input_sorts) {
+            if input_sort1 != input_sort2 {
+                return false;
+            }
+        }
+        return self.output_sort == other.output_sort;
+    }
+}
+
+impl Eq for FunctionSymbol {}
+
 impl Language {
-    pub fn new<const N: usize, const M: usize, const K: usize>(
-        sorts: [&Rc<Sort>; N],
-        function_symbols: [&Rc<FunctionSymbol>; M],
-        relation_symbols: [&Rc<RelationSymbol>; K],
+    pub fn new(
+        sorts: &[&Rc<Sort>],
+        function_symbols: &[&Rc<FunctionSymbol>],
+        relation_symbols: &[&Rc<RelationSymbol>],
     ) -> Rc<Language> {
         Rc::new(Language {
             sorts: clone_vec_rc(sorts),
             function_symbols: clone_vec_rc(function_symbols),
             relation_symbols: clone_vec_rc(relation_symbols),
         })
+    }
+
+    pub fn iter_function_symbols(&self) -> Iter<Rc<FunctionSymbol>> {
+        return self.function_symbols.iter();
     }
 }
 
@@ -137,7 +168,7 @@ impl Term {
         Rc::new(Term::Variable(Rc::new(Variable { index, sort: sort.clone() })))
     }
 
-    pub fn new_application<const N: usize>(symbol: &Rc<FunctionSymbol>, arguments: [&Rc<Term>; N]) -> Rc<Term> {
+    pub fn new_application(symbol: &Rc<FunctionSymbol>, arguments: &[&Rc<Term>]) -> Rc<Term> {
         Rc::new(Term::Application(symbol.clone(), clone_vec_rc(arguments)))
     }
 
@@ -170,8 +201,32 @@ impl Formula {
         Rc::new(Formula::Conjunction(Vec::new()))
     }
 
-    pub fn new_relation_application<const N: usize>(symbol: &Rc<RelationSymbol>, arguments: [&Rc<Term>; N]) -> Rc<Formula> {
+    pub fn new_relation_application(symbol: &Rc<RelationSymbol>, arguments: &[&Rc<Term>]) -> Rc<Formula> {
         Rc::new(Formula::RelationApplication(symbol.clone(), clone_vec_rc(arguments)))
+    }
+
+    pub fn new_equality(left: &Rc<Term>, right: &Rc<Term>) -> Rc<Formula> {
+        Rc::new(Formula::Equality(left.clone(), right.clone()))
+    }
+
+    pub fn new_negation(formula: &Rc<Formula>) -> Rc<Formula> {
+        Rc::new(Formula::Negation(formula.clone()))
+    }
+
+    pub fn new_conjunction(conjuncts: &[&Rc<Formula>]) -> Rc<Formula> {
+        Rc::new(Formula::Conjunction(clone_vec_rc(conjuncts)))
+    }
+
+    pub fn new_disjunction(disjuncts: &[&Rc<Formula>]) -> Rc<Formula> {
+        Rc::new(Formula::Disjunction(clone_vec_rc(disjuncts)))
+    }
+
+    pub fn new_implication(left: &Rc<Formula>, right: &Rc<Formula>) -> Rc<Formula> {
+        Rc::new(Formula::Implication(left.clone(), right.clone()))
+    }
+
+    pub fn new_equivalence(left: &Rc<Formula>, right: &Rc<Formula>) -> Rc<Formula> {
+        Rc::new(Formula::Equivalence(left.clone(), right.clone()))
     }
 
     pub fn collect_free_variables_in_set(&self, free_vars: &mut VariableSet) {

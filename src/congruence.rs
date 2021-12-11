@@ -36,7 +36,14 @@ impl CongruenceGraph {
     // }
 
     /// Add a parent to the given children
-    pub fn add_parent(&mut self, symbol: SymbolIndex, children: &Vec<NodeIndex>) {
+    pub fn add_node(&mut self, symbol: SymbolIndex, children: &Vec<NodeIndex>) -> NodeIndex {
+        // if there exists a node with the same symbol and children, return that node
+        for (i, node) in self.nodes.iter().enumerate() {
+            if node.symbol == symbol && &node.children == children {
+                return i;
+            }
+        }
+
         // check that all children exists
         let new_index = self.nodes.len();
         for child in children {
@@ -50,6 +57,7 @@ impl CongruenceGraph {
             parents: vec![],
             children: children.clone(), 
         });
+        return new_index;
     }
 
     /// Find the representative of the congruence class that node belongs to
