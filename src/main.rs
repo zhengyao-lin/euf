@@ -14,32 +14,30 @@ fn main() {
 
     let mut input = String::new();
 
-    print!(">>> ");
-
     loop {
+        print!(">>> ");
+        input.clear();
         std::io::stdout().flush().unwrap();
         std::io::stdin().read_line(&mut input).unwrap();
 
         let sort_a = Sort::new("A");
         let mut parser = parser::UnsortedParser::new(&sort_a);
 
-        match parser.parse_formula(input.as_str()) {
+        let input_trimmed = input.trim();
+
+        match parser.parse_formula(input_trimmed) {
             Some((rest, formula)) => {
                 if rest.trim().is_empty() {
                     println!("parsed: {}", formula);
                     println!("{}", QFEUFSolver::sat(&parser.get_language(), &formula));
-                    input.clear();
                 } else {
-                    // not finished parsing
-                    print!("... ");
-                    continue
+                    println!("failed to parse: {}", input_trimmed);
                 }
             },
             None => {
-                println!("failed to parse: {}", input);
+                println!("failed to parse: {}", input_trimmed);
             },
         }
-        print!(">>> ");
     }
 
     // let mut graph = CongruenceGraph::new();

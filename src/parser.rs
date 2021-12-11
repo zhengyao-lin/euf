@@ -10,15 +10,15 @@ use nom::character::complete::multispace0;
 use nom::bytes::complete::tag;
 
 macro_rules! ws {
-    ($x:expr) => {
+    ($x: expr) => {
         delimited::<_, _, _, _, error::Error<&str>, _, _, _>(multispace0, $x, multispace0)
     }
 }
 
 macro_rules! sep_list {
-    ($self:expr, $x:ident, $y:expr, $input:expr) => {
+    ($self: expr, $x: ident, $y: expr, $input: expr, $at_least_one: expr) => {
         match $self.$x($input) {
-            IResult::Err(_) => IResult::Ok(($input, vec![])),
+            IResult::Err(err) => if $at_least_one { IResult::Err(err) } else { IResult::Ok(($input, vec![])) },
             IResult::Ok((input, x)) => {
                 let mut input = input;
                 let mut xs = vec![x];
@@ -86,7 +86,7 @@ impl UnsortedParser {
     }
     
     fn terms<'a>(&mut self, input: &'a str) -> IResult<&'a str, Vec<Rc<Term>>> {
-        sep_list!(self, term, ws!(tag(",")), input)
+        sep_list!(self, term, ws!(tag(",")), input, false)
     }
     
     fn equality<'a>(&mut self, input: &'a str) -> IResult<&'a str, Rc<Formula>> {
@@ -125,7 +125,7 @@ impl UnsortedParser {
     }
 
     fn conjunction_list<'a>(&mut self, input: &'a str) -> IResult<&'a str, Vec<Rc<Formula>>> {
-        sep_list!(self, unary, ws!(tag("/\\")), input)
+        sep_list!(self, unary, ws!(tag("/\\")), input, true)
     }
     
     fn conjunction<'a>(&mut self, input: &'a str) -> IResult<&'a str, Rc<Formula>> {
@@ -134,7 +134,7 @@ impl UnsortedParser {
     }
 
     fn disjunction_list<'a>(&mut self, input: &'a str) -> IResult<&'a str, Vec<Rc<Formula>>> {
-        sep_list!(self, conjunction, ws!(tag("\\/")), input)
+        sep_list!(self, conjunction, ws!(tag("\\/")), input, true)
     }
 
     fn disjunction<'a>(&mut self, input: &'a str) -> IResult<&'a str, Rc<Formula>> {
