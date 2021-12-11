@@ -3,23 +3,45 @@ mod fol;
 mod solver;
 mod parser;
 
-use std::rc::Rc;
+use std::io::Write;
 
-use congruence::CongruenceGraph;
 use fol::*;
-use solver::QFEUFSolver;
-
-fn parse_and_check_sat(input: &str) -> bool {
-    let sort_a = Sort::new("A");
-    let mut parser = parser::UnsortedParser::new(&sort_a);
-
-    match parser.parse_formula(input) {
-        Some(formula) => QFEUFSolver::sat(&parser.get_language(), &formula),
-        None => panic!("failed to parse: {}", input),
-    }
-}
+use solver::*;
 
 fn main() {
+    // let formula = r"f(f(f(a))) = a /\ f(f(f(f(f(a))))) = a /\ f(a) != a";
+    // println!("{}: {}", parse_and_check_sat(formula), formula);
+
+    let mut input = String::new();
+
+    print!(">>> ");
+
+    loop {
+        std::io::stdout().flush().unwrap();
+        std::io::stdin().read_line(&mut input).unwrap();
+
+        let sort_a = Sort::new("A");
+        let mut parser = parser::UnsortedParser::new(&sort_a);
+
+        match parser.parse_formula(input.as_str()) {
+            Some((rest, formula)) => {
+                if rest.trim().is_empty() {
+                    println!("parsed: {}", formula);
+                    println!("{}", QFEUFSolver::sat(&parser.get_language(), &formula));
+                    input.clear();
+                } else {
+                    // not finished parsing
+                    print!("... ");
+                    continue
+                }
+            },
+            None => {
+                println!("failed to parse: {}", input);
+            },
+        }
+        print!(">>> ");
+    }
+
     // let mut graph = CongruenceGraph::new();
 
     // // a = 0, b = 1, f = 2
@@ -120,7 +142,4 @@ fn main() {
     //     },
     //     None => print!("failed to parse"),
     // }
-
-    let formula = r"f(f(f(a))) = a /\ f(f(f(f(f(a))))) = a /\ f(a) != a";
-    println!("{}: {}", parse_and_check_sat(formula), formula);
 }

@@ -1,6 +1,7 @@
 use std::borrow::Borrow;
 use std::panic;
 use std::rc::Rc;
+use std::fmt;
 
 use crate::congruence::*;
 use crate::fol::*;
@@ -8,6 +9,22 @@ use crate::fol::*;
 type Literal = (bool, Rc<Formula>);
 type Clause = Vec<Literal>;
 type ClauseList = Vec<Clause>;
+
+pub enum SatResult {
+    Sat,
+    Unsat,
+    Unknown,
+}
+
+impl fmt::Display for SatResult {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            SatResult::Sat => write!(f, "sat"),
+            SatResult::Unsat => write!(f, "unsat"),
+            SatResult::Unknown => write!(f, "unknown"),
+        }
+    }
+}
 
 /// A solver for quantifier-free theory of equality and uninterpreted functions
 pub struct QFEUFSolver {
@@ -180,7 +197,7 @@ impl QFEUFSolver {
     }
 
     /// Check if a clause (conjunction) is satisfiable
-    pub fn clause_sat(language: &Rc<Language>, clause: &Clause) -> bool {
+    pub fn clause_sat(language: &Rc<Language>, clause: &Clause) -> SatResult {
         let mut solver = QFEUFSolver::new(language);
         let mut equalities = vec![];
         let mut negated_equalities = vec![];
@@ -206,24 +223,24 @@ impl QFEUFSolver {
 
         for (node1, node2) in negated_equalities {
             if solver.check_equality(node1, node2) {
-                return false;
+                return SatResult::Unsat;
             }
         }
 
-        true
+        SatResult::Sat
     }
 
     /// Check if the given QF_EUF formula is satisfiable
-    pub fn sat(language: &Rc<Language>, formula: &Rc<Formula>) -> bool {
+    pub fn sat(language: &Rc<Language>, formula: &Rc<Formula>) -> SatResult {
         // TODO: instead of DNF, use a faster way to search for sat assignments
         let dnf = QFEUFSolver::to_dnf(formula);
 
         for clause in dnf {
-            if QFEUFSolver::clause_sat(language, &clause) {
-                return true;
+            if let SatResult::Sat = QFEUFSolver::clause_sat(language, &clause) {
+                return SatResult::Sat;
             }
         }
 
-        false
+        SatResult::Unsat
     }
 }

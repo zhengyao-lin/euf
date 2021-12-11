@@ -165,9 +165,9 @@ impl UnsortedParser {
     }
 
     /// Parse a quantifier free formula with terms looking like f(a, f(a, b))
-    pub fn parse_formula(&mut self, input: &str) -> Option<Rc<Formula>> {
+    pub fn parse_formula<'a>(&mut self, input: &'a str) -> Option<(&'a str, Rc<Formula>)> {
         match self.formula(input) {
-            IResult::Ok((_, formula)) => Some(formula.clone()),
+            IResult::Ok((input, formula)) => Some((input, formula.clone())),
             _ => None,
         }
     }
