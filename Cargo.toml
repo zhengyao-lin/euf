@@ -1,5 +1,5 @@
 [package]
-name = "np-euf"
+name = "euf"
 version = "0.1.0"
 edition = "2021"
 

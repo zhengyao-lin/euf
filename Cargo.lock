@@ -3,6 +3,13 @@
 version = 3
 
 [[package]]
+name = "euf"
+version = "0.1.0"
+dependencies = [
+ "nom",
+]
+
+[[package]]
 name = "memchr"
 version = "2.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -23,13 +30,6 @@ dependencies = [
  "memchr",
  "minimal-lexical",
  "version_check",
-]
-
-[[package]]
-name = "np-euf"
-version = "0.1.0"
-dependencies = [
- "nom",
 ]
 
 [[package]]
